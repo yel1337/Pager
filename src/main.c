@@ -95,6 +95,11 @@ int main(int argc, char *argv[])
 	pr.p_table.page_count = 0;
 	int argv_flag = atoi(argv[2]);
 	if (pr.pid) {
+		printf("pid: %d\n", pr.pid);
+
+		/*
+		 * This where Page Table starts allocating a size
+		 */
 		pr.p_table.writable = (argv_flag < 2) ? argv_flag: 0;
 		pr.p_table.us = (argv_flag < 2) ? argv_flag: 0;
 		pr.p_table.size = P_MEMORY;
