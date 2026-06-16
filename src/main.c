@@ -105,7 +105,13 @@ int main(int argc, char *argv[])
 	 * Initialize a context for frame in logical memory
 	 */
 	pr.process_size = P_MEMORY;
-	pr.to_log.pte_frame[pr.p_table.page_count] = (uint32_t *) malloc(PTE_SIZE);
+	lg.va_space[pr.p_table.page_count] = (uint32_t *) malloc(PTE_SIZE);
+
+	int x = 13;
+	memcpy(lg.va_space, l->pte_frames, sizeof((uint32_t **)lg.va_space));
+	l->pte_frames[pr.p_table.page_count] = (uint32_t *) &x;
+	// ALLOCATED AN INDEX RETRIEVE ITS MEMORY ADDRESS
+	uint32_t **ind = &lg.pte_frames[pr.p_table.page_count];
 
 	/*
 	 * DEBUG OPTION ON 
