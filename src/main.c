@@ -74,6 +74,65 @@ static uint32_t *debug_out_frame(const LOGICAL_MEMORY *logical_mem,
 	} else if (debug_flag == 1) {
 		return (uint32_t *) count_page_indexes(l_mem);
 	}
+
+	return NULL;
+}
+
+static size_t return_size(LOGICAL_MEMORY *array_instance){
+	size_t array_size;
+	array_size = sizeof((size_t) array_instance->logical_space[PTE_SIZE]) /
+							sizeof((size_t) array_instance->logical_space[0][PTE_SIZE]);
+
+	return array_size;
+}
+static uint32_t ***which_free_frame(LOGICAL_MEMORY *array_instance, size_t size)
+{
+	uint32_t ***pointer_to_free_frame = malloc((size_t)sizeof(size));
+	for (int index = 0; index < size; index++) {
+		if (array_instance->pte_frame[index]!= NULL) {
+			pointer_to_free_frame[index] = &array_instance->pte_frame[index];
+		} else {
+			pointer_to_free_frame[index] = NULL;
+		}
+	}
+	return pointer_to_free_frame;
+}
+
+static uint32_t **allocate_frame(size_t size)
+{
+	LOGICAL_MEMORY *frame_instance;
+	uint32_t ***free_spaces = which_free_frame(frame_instance, size);
+
+	// Allocate a frame inside of multi dimensional array of logical memory
+	for (int frame_populate = 0; size < frame_populate; frame_populate++) {
+		if (free_spaces[frame_populate] != NULL) {
+			frame_instance->pte_frame[frame_populate] = pid_mem;
+		}
+	}
+	return frame_instance->pte_frame;
+}
+
+static uint32_t ***which_free_logical_entry(LOGICAL_MEMORY *entry_instance, size_t size)
+{
+	uint32_t ***pointer_to_free_logical_entry = malloc(sizeof((uint32_t**)PAGE_SIZE));
+	for (int entry_index = 0; entry_index < size; entry_index++) {
+		if (entry_instance->logical_space[entry_index] != NULL) {
+			pointer_to_free_logical_entry[entry_index] = (uint32_t **)entry_instance->logical_space[entry_index];
+		} else {
+			pointer_to_free_logical_entry[entry_index] = NULL; 
+		}
+	}
+	return pointer_to_free_logical_entry;
+}
+
+static void *allocate_entry_logical(LOGICAL_MEMORY *lm_instance, uint32_t **frame)
+{
+	size_t size_of_logical = return_size(lm_instance);
+	frame = allocate_frame(size_of_logical);
+	while (which_free_logical_entry(lm_instance, size_of_logical) != NULL)  {
+		lm_instance->logical_space = (uint32_t **(*)[PTE_SIZE])frame;
+	}
+	return NULL;
 }
 
 int main(int argc, char *argv[])
