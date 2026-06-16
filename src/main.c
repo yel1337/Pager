@@ -52,11 +52,6 @@ void _out(uint32_t *frame_mem_addr, int index,
 	}
 }
 
-pid_t pid_rand(void)
-{
-	return (getpid() <= 1000);
-}
-
 static size_t count_page_indexes(LOGICAL_MEMORY lga)
 {
 	return ((size_t) sizeof(lga.pte_frame[PTE_SIZE]));
