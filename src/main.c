@@ -158,6 +158,20 @@ static void *allocate_entry_logical(LOGICAL_MEMORY *lm_instance)
 		lm_instance->logical_space[logical_entry_index] = &the_frame[logical_entry_index];						
 	}
 }
+static uint32_t PAGE_NUMBER()
+{
+	pid_t *address_reference = create_process();
+	uint32_t get_pn = (uintptr_t) address_reference / PAGE_SIZE;
+	return get_pn;
+}
+
+static uint32_t OFFSET(LOGICAL_MEMORY *do_offset_frame)
+{
+	uint32_t pn = page_number();
+	pid_t *address_reference = create_process();
+	uint32_t get_offset = address_reference - (pn * PAGE_SIZE);
+	return get_offset;
+}
 
 int main(int argc, char *argv[])
 {
