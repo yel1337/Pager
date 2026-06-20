@@ -11,6 +11,7 @@
 #define PTE_SIZE 0x4000
 #define P_MEMORY 0x1000 /* A PROCESS NEEDS 4KB */
 #define PARENT_SUCCESS 0
+#define RAW_ADDRESS_REFERENCE 4101
 
 /*
  * Supposed this is the page table intermediary between
