@@ -166,10 +166,10 @@ static uint32_t PAGE_NUMBER()
 	return get_pn;
 }
 
-static uint32_t OFFSET(LOGICAL_MEMORY *do_offset_frame)
+static uint32_t OFFSET(LOGICAL_MEMORY *do_offset_frame, uint32_t pn)
 {
-	uint32_t pn = page_number();
-	pid_t *address_reference = create_process();
+	pn = page_number();
+	pid_t *address_reference = RAW_ADDRESS_REFERENCE;
 	uint32_t get_offset = address_reference - (pn * PAGE_SIZE);
 	return get_offset;
 }
