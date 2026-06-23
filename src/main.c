@@ -161,7 +161,7 @@ static void *allocate_entry_logical(LOGICAL_MEMORY *lm_instance)
 }
 static uint32_t PAGE_NUMBER()
 {
-	pid_t *address_reference = create_process();
+	pid_t *address_reference = RAW_ADDRESS_REFERENCE;
 	uint32_t get_pn = (uintptr_t) address_reference / PAGE_SIZE;
 	return get_pn;
 }
