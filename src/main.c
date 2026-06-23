@@ -11,7 +11,6 @@
 #define PTE_SIZE 0x4000
 #define P_MEMORY 0x1000 /* A PROCESS NEEDS 4KB */
 #define PARENT_SUCCESS 0
-#define RAW_ADDRESS_REFERENCE 4101
 
 /*
  * Supposed this is the page table intermediary between
@@ -159,18 +158,22 @@ static void *allocate_entry_logical(LOGICAL_MEMORY *lm_instance)
 		lm_instance->logical_space[logical_entry_index] = &the_frame[logical_entry_index];						
 	}
 }
-static uint32_t PAGE_NUMBER()
+
+static uint32_t *GET_LOGICAL_ADDRESS(uint32_t PAGE_NUMBER, uint32_t OFFSET)
 {
-	pid_t *address_reference = RAW_ADDRESS_REFERENCE;
-	uint32_t get_pn = (uintptr_t) address_reference / PAGE_SIZE;
+	uint32_t logical_addr = (PAGE_NUMBER * PAGE_SIZE) + OFFSET;
+	return logical_addr;
+}
+
+static uint32_t PAGE_NUMBER(uint32_t logical_address_reference)
+{
+	uint32_t get_pn = logical_address_reference / PAGE_SIZE;
 	return get_pn;
 }
 
-static uint32_t OFFSET(LOGICAL_MEMORY *do_offset_frame, uint32_t pn)
+static uint32_t OFFSET(LOGICAL_MEMORY *do_offset_frame, uint32_t pn, uint32_t logical_address_reference)
 {
-	pn = page_number();
-	pid_t *address_reference = RAW_ADDRESS_REFERENCE;
-	uint32_t get_offset = address_reference - (pn * PAGE_SIZE);
+	uint32_t get_offset = logical_address_reference - (pn * PAGE_SIZE);
 	return get_offset;
 }
 
