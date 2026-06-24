@@ -109,19 +109,18 @@ static uint32_t **which_free_frame()
 	return pointer_to_free_frame;
 }
 
-static uint32_t **allocate_frame()
+static uint32_t **allocate_frame(pid_t process)
 {
 	LOGICAL_MEMORY *frame_instance;
 	PROCESS pr;
 	size_t s_array = return_size(frame_instance);	
 	uint32_t ***free_spaces = which_free_frame(frame_instance, s_array);
-	pid_t parent_pid = create_process();
-	pr.pid = (int) parent_pid;
+	pr.pid = (int) process;
 
 	// Allocate a frame inside of multi dimensional array of logical memory
 	for (int frame_populate = 0; s_array < frame_populate; frame_populate++) {
 		if (free_spaces[frame_populate] != NULL) {
-			frame_instance->pte_frame[frame_populate] = (uint32_t *)parent_pid;
+			frame_instance->pte_frame[frame_populate] = (uint32_t *)pr.pid;
 		}
 	}
 	return frame_instance->pte_frame;
@@ -145,14 +144,20 @@ static uint32_t **which_free_logical_entry(LOGICAL_MEMORY *entry_instance)
 	return pointer_to_free_logical_entry;
 }
 
-static void *allocate_entry_logical(LOGICAL_MEMORY *lm_instance)
+static void *allocate_entry_logical(LOGICAL_MEMORY *lm_instance, pid_t process)
 {
 	/*
 	 * TAKES FRAME POINTER AND ADD IT TO LOGICAL MEMORY
 	 */
 	uint32_t **to_free_frame = which_free_frame();
 	uint32_t **to_free_logical = which_free_logical_entry(lm_instance);
-	uint32_t **the_frame = allocate_frame();
+
+	if (to_free_logical == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	uint32_t **the_frame = allocate_frame(process);
 	for (int logical_entry_index = 0; lm_instance->logical_space[logical_entry_index] != NULL
 						&& to_free_frame[logical_entry_index] != NULL; logical_entry_index++) {
 		lm_instance->logical_space[logical_entry_index] = &the_frame[logical_entry_index];						
@@ -165,15 +170,15 @@ static uint32_t *GET_LOGICAL_ADDRESS(uint32_t PAGE_NUMBER, uint32_t OFFSET)
 	return logical_addr;
 }
 
-static uint32_t PAGE_NUMBER(uint32_t logical_address_reference)
+static uint32_t *PAGE_NUMBER(pid_t *process)
 {
-	uint32_t get_pn = logical_address_reference / PAGE_SIZE;
+	uint32_t *get_pn = *process / PAGE_SIZE;
 	return get_pn;
 }
 
-static uint32_t OFFSET(LOGICAL_MEMORY *do_offset_frame, uint32_t pn, uint32_t logical_address_reference)
+static uint32_t *OFFSET(uint32_t pn, pid_t *process)
 {
-	uint32_t get_offset = logical_address_reference - (pn * PAGE_SIZE);
+	uint32_t get_offset = process - (pn * PAGE_SIZE);
 	return get_offset;
 }
 
@@ -192,16 +197,28 @@ int main(int argc, char *argv[])
 	}
 
 	/*
+	 * COMMENCE CREATE_PROCESS()
+	 */
+	pid_t *pr = create_process();
+
+	/*
 	 * ALLOCATION FOR LOGICAL MEMORY STARTS HERE
 	 */
-	uint32_t **frame_instance = allocate_frame();
+	uint32_t **frame_instance = allocate_frame(pr);
 	
 	/*
 	 * PROCESS CHECK UP
 	 */
 	if (parent_check(process) == PARENT_SUCCESS) {
-		allocate_entry_logical(lg);
+		allocate_entry_logical(lg, pr);
 	}
+
+	/*
+	 * PAGE NUMBER & OFFSET
+	 */
+	uint32_t *PN = PAGE_NUMBER(pr);	
+	uint32_t *OFT = OFFSET(PN, pr);
+
 
 	/*
 	 * DEBUG OPTION ON 
