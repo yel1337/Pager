@@ -29,7 +29,7 @@ typedef struct {
 } PT;
 
 typedef struct{
-	uint32_t **logical_space;
+	uint32_t *logical_space;
 	uint32_t *pte_size;
 	uint32_t *pte_frame[];
 } LOGICAL_MEMORY;
@@ -90,7 +90,7 @@ static uint32_t *debug_out_frame(const LOGICAL_MEMORY *logical_mem,
 static size_t return_size(LOGICAL_MEMORY *array_instance){
 	size_t array_size;
 	array_size = sizeof((size_t) array_instance->logical_space[PTE_SIZE]) /
-							sizeof((size_t) array_instance->logical_space[0][PTE_SIZE]);
+							sizeof((size_t) array_instance->logical_space[0]);
 
 	return array_size;
 }
@@ -112,22 +112,22 @@ static uint32_t **which_free_frame()
 static uint32_t **allocate_frame(pid_t process)
 {
 	LOGICAL_MEMORY *frame_instance;
-	PROCESS pr;
 	size_t s_array = return_size(frame_instance);	
-	uint32_t ***free_spaces = which_free_frame(frame_instance, s_array);
-	pr.pid = (int) process;
+	uint32_t **free_spaces = which_free_frame(frame_instance, s_array);
 
 	// Allocate a frame inside of multi dimensional array of logical memory
 	for (int frame_populate = 0; s_array < frame_populate; frame_populate++) {
 		if (free_spaces[frame_populate] != NULL) {
-			frame_instance->pte_frame[frame_populate] = (uint32_t *)pr.pid;
+			frame_instance->pte_frame[frame_populate] = (uint32_t *)process;
 		}
 	}
 	return frame_instance->pte_frame;
 }
 
-static uint32_t **allocate_mem_logical(LOGICAL_MEMORY *l_space) {
+static uint32_t **allocate_mem_logical() {
+	LOGICAL_MEMORY *l_space;
 	l_space->logical_space = (uint32_t **) malloc(PAGE_SIZE * sizeof(uint32_t *));
+	return l_space->logical_space;
 }
 
 static uint32_t **which_free_logical_entry(LOGICAL_MEMORY *entry_instance)
@@ -144,7 +144,12 @@ static uint32_t **which_free_logical_entry(LOGICAL_MEMORY *entry_instance)
 	return pointer_to_free_logical_entry;
 }
 
-static void *allocate_entry_logical(LOGICAL_MEMORY *lm_instance, pid_t process)
+static uint32_t *DEBUG_ADDR_LOGICAL(LOGICAL_MEMORY *lm)
+{
+	return lm->logical_space;
+} 
+
+static void *allocate_entry_logical(LOGICAL_MEMORY *lm_instance, pid_t *process)
 {
 	/*
 	 * TAKES FRAME POINTER AND ADD IT TO LOGICAL MEMORY
@@ -190,11 +195,7 @@ int main(int argc, char *argv[])
 	/*
 	 * ALLOCATE FOR LOGICAL MEMORY
 	 */
-	uint32_t *l_allocate = allocate_mem_logical(lg);
-	if (l_allocate == NULL) {
-		errno = ENOMEM;
-		return 0;
-	}
+	uint32_t **pointer_logical = allocate_mem_logical(); // THIS WILL HAVE THE POINTER
 
 	/*
 	 * COMMENCE CREATE_PROCESS()
@@ -210,7 +211,7 @@ int main(int argc, char *argv[])
 	 * PROCESS CHECK UP
 	 */
 	if (parent_check(process) == PARENT_SUCCESS) {
-		allocate_entry_logical(lg, pr);
+		allocate_entry_logical(pointer_logical, pr);
 	}
 
 	/*
@@ -219,10 +220,17 @@ int main(int argc, char *argv[])
 	uint32_t *PN = PAGE_NUMBER(pr);	
 	uint32_t *OFT = OFFSET(PN, pr);
 
-
 	/*
 	 * DEBUG OPTION ON 
 	 *
 	 * A valid page frame should return no trash value
 	 */
+	if(strcmp(argv[1], "-d" == 0)) {
+		if (pointer_logical != NULL && lg->pte_frame != NULL) {
+			printf("logical space: ok\nframe: ok") ; 
+		} else {
+			errno = ENOMEM;
+			return NULL; 
+		}
+	}
 }
