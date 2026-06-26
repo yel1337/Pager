@@ -34,13 +34,6 @@ typedef struct{
 	uint32_t *pte_frame[];
 } LOGICAL_MEMORY;
 
-typedef struct{
-	int pid;
-	uint32_t process_size;
-	PT p_table;
-	LOGICAL_MEMORY to_log;
-} PROCESS; 
-
 /*
  * Prints out va's index in hex
  */
@@ -59,9 +52,9 @@ static size_t count_page_indexes(LOGICAL_MEMORY lga)
 	return ((size_t) sizeof(lga.pte_frame[PTE_SIZE]));
 }
 
-static pid_t parent_check(PROCESS pr)
+static pid_t parent_check(pid_t *pr)
 {
-	if (pr.pid) {
+	if (pr) {
 		return PARENT_SUCCESS;
 	}
 }
@@ -190,7 +183,6 @@ static uint32_t *OFFSET(uint32_t pn, pid_t *process)
 int main(int argc, char *argv[])
 {
 	LOGICAL_MEMORY l, *lg, *lg_debug;
-	PROCESS process;
 
 	/*
 	 * ALLOCATE FOR LOGICAL MEMORY
@@ -210,7 +202,7 @@ int main(int argc, char *argv[])
 	/*
 	 * PROCESS CHECK UP
 	 */
-	if (parent_check(process) == PARENT_SUCCESS) {
+	if (parent_check(pr) == PARENT_SUCCESS) {
 		allocate_entry_logical(pointer_logical, pr);
 	}
 
