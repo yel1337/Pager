@@ -89,15 +89,14 @@ static size_t return_size(LOGICAL_MEMORY *array_instance){
 }
 static uint32_t **which_free_frame()
 {
-	LOGICAL_MEMORY *array_instance;
+	LOGICAL_MEMORY array_instance;
 	size_t size = return_size(array_instance);
 	uint32_t **pointer_to_free_frame = malloc(sizeof(size));
 	for (int index = 0; index < size; index++) {
-		if (array_instance->pte_frame[index]!= NULL) {
-			pointer_to_free_frame[index] = &array_instance->pte_frame[index];
+		if (array_instance.pte_frame[index]!= NULL) {
+		  pointer_to_free_frame[index] = (uint32_t **)array_instance.pte_frame[index];
 		} else {
-			pointer_to_free_frame[index] = NULL;
-		}
+			pointer_to_free_frame[index] = NULL;		}
 	}
 	return pointer_to_free_frame;
 }
@@ -221,8 +220,8 @@ int main(int argc, char *argv[])
 		if (pointer_logical != NULL && lg->pte_frame != NULL) {
 			printf("logical space: ok\nframe: ok") ; 
 		} else {
-			errno = ENOMEM;
-			return NULL; 
+			errno = 0;
+		      ; 
 		}
 	}
 }
