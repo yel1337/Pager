@@ -6,7 +6,7 @@ pid_t *create_process()
     pid_t pid, *parent;
     pid = fork();
     if (!pid == -1) {
-        *parent = &pid;
+        *parent = pid;
     }
     return parent;
 }
