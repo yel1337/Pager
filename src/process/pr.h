@@ -3,6 +3,6 @@
 
 #include <unistd.h>
 
-pid_t *create_process();
+pid_t create_process();
 
 #endif

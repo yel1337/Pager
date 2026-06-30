@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include "pr.h"
 
-pid_t *create_process()
+pid_t create_process()
 {
-    pid_t pid, *parent;
-    pid = fork();
-    if (!pid == -1) {
-        *parent = pid;
+    pid_t pid = fork();
+    if (pid == -1) {
+      return -1;
     }
-    return parent;
+    return pid;
 }
 
