@@ -30,8 +30,7 @@ typedef struct {
 
 typedef struct{
 	uint32_t *logical_space;
-	uint32_t *pte_size;
-	uint32_t *pte_frame[];
+	uint32_t **pte_frame;
 } LOGICAL_MEMORY;
 
 /*
@@ -83,45 +82,44 @@ static uint32_t *debug_out_frame(const LOGICAL_MEMORY *logical_mem,
 
 static size_t return_size(LOGICAL_MEMORY *array_instance){
 	size_t array_size;
+	/*
+	 * Below gets the absolute size of an index
+	 */
 	array_size = sizeof((size_t) array_instance->logical_space[PTE_SIZE]) /
 							sizeof((size_t) array_instance->logical_space[0]);
 
 	return array_size;
 }
-static uint32_t **which_free_frame()
+static uint32_t **which_free_frame(LOGICAL_MEMORY *ARRAY_INSTANCE)
 {
-	LOGICAL_MEMORY *array_instance;
-	size_t size = return_size(array_instance);
-	uint32_t **pointer_to_free_frame = malloc(sizeof(size));
+        size_t size = 100;
+	uint32_t **pointer_to_free_frame = malloc(size * sizeof(uint32_t *));
 	for (int index = 0; index < size; index++) {
-		if (array_instance->pte_frame[index]!= NULL) {
-		  pointer_to_free_frame[index] = array_instance->pte_frame[index];
+		if (ARRAY_INSTANCE->pte_frame[index]!= NULL) {
+		  pointer_to_free_frame[index] = ARRAY_INSTANCE->pte_frame[index];
 		} else {
-			pointer_to_free_frame[index] = NULL;		}
+			pointer_to_free_frame[index] = NULL;
+		}
 	}
 	return pointer_to_free_frame;
 }
 
-static uint32_t **allocate_frame(pid_t *process)
+static uint32_t **allocate_frame(pid_t *process, uint32_t *FRAME_INSTANCE)
 {
-	LOGICAL_MEMORY *frame_instance;
-	size_t s_array = return_size(frame_instance);	
-	uint32_t **free_spaces = which_free_frame();
+        size_t s_array = return_size((LOGICAL_MEMORY *)FRAME_INSTANCE);	
+	uint32_t **free_spaces = which_free_frame((LOGICAL_MEMORY *)FRAME_INSTANCE);
 
 	// Allocate a frame inside of multi dimensional array of logical memory
 	for (int frame_populate = 0; s_array < frame_populate; frame_populate++) {
 		if (free_spaces[frame_populate] != NULL) {
-		  frame_instance->pte_frame[frame_populate] = (uint32_t *)&process;
+		  ((LOGICAL_MEMORY *)FRAME_INSTANCE)->pte_frame[frame_populate] = (uint32_t *)process;
 		}
 	}
-	return frame_instance->pte_frame;
+	return ((LOGICAL_MEMORY *)FRAME_INSTANCE)->pte_frame;
 }
 
-static LOGICAL_MEMORY **allocate_mem_logical() {
-        LOGICAL_MEMORY **l_space = malloc(1 * sizeof(LOGICAL_MEMORY *));
-	l_space[0] = malloc(sizeof(LOGICAL_MEMORY));
-	l_space[0]->logical_space = malloc(PAGE_SIZE * sizeof(uint32_t));
-	return l_space;
+static LOGICAL_MEMORY **allocate_mem_logical(LOGICAL_MEMORY *l_instance) {
+	return (LOGICAL_MEMORY**)l_instance->logical_space;
 }
 
 static uint32_t **which_free_logical_entry(LOGICAL_MEMORY **entry_instance)
@@ -143,12 +141,12 @@ static uint32_t *DEBUG_ADDR_LOGICAL(LOGICAL_MEMORY *lm)
 	return lm->logical_space;
 } 
 
-static void *allocate_entry_logical(LOGICAL_MEMORY **lm_instance, pid_t *process)
+static void *allocate_entry_logical(LOGICAL_MEMORY **lm_instance, LOGICAL_MEMORY *f_instance, pid_t *process)
 {
 	/*
 	 * TAKES FRAME POINTER AND ADD IT TO LOGICAL MEMORY
 	 */
-	uint32_t **to_free_frame = which_free_frame();
+	uint32_t **to_free_frame = which_free_frame(f_instance);
 	uint32_t **to_free_logical = which_free_logical_entry(lm_instance);
 
 	if (to_free_logical == NULL) {
@@ -156,7 +154,7 @@ static void *allocate_entry_logical(LOGICAL_MEMORY **lm_instance, pid_t *process
 		return NULL;
 	}
 
-	uint32_t **the_frame = allocate_frame(process);
+	uint32_t **the_frame = allocate_frame(process, (uint32_t *)f_instance);
 	for (int logical_entry_index = 0; (*lm_instance)->logical_space[logical_entry_index] != 0
 						&& to_free_frame[logical_entry_index] != 0; logical_entry_index++) {
 	  (*lm_instance)->logical_space[logical_entry_index] = *(the_frame[logical_entry_index]);			     	
@@ -185,28 +183,36 @@ static uint32_t OFFSET(uint32_t pn, pid_t *process)
 
 int main(int argc, char *argv[])
 {
-	LOGICAL_MEMORY l, *lg, *lg_debug;
+	LOGICAL_MEMORY l, *lg, *to_struct;
 
 	/*
 	 * ALLOCATE FOR LOGICAL MEMORY
 	 */
-	LOGICAL_MEMORY **pointer_logical = allocate_mem_logical(); // THIS WILL HAVE THE POINTER
+	LOGICAL_MEMORY *pointer_logical = malloc(sizeof(LOGICAL_MEMORY));;
+	allocate_mem_logical(pointer_logical); // THIS WILL HAVE THE POINTER
+
+	/*
+	 * ALLOCATE A MEMORY FOR EACH FRAME
+	 */
+	to_struct = malloc(sizeof(LOGICAL_MEMORY));
+        to_struct->pte_frame = malloc(10 * sizeof(uint32_t *));
+	uint32_t **free_frames = which_free_frame(pointer_logical);
 
 	/*
 	 * COMMENCE CREATE_PROCESS()
 	 */
-	pid_t *pr = create_process();
+	pid_t pr = create_process();
 
 	/*
 	 * ALLOCATION FOR LOGICAL MEMORY STARTS HERE
 	 */
-	uint32_t **frame_instance = allocate_frame(pr);
+	uint32_t **frame_instance = allocate_frame(&pr, (uint32_t *)free_frames);
 	
 	/*
 	 * PROCESS CHECK UP
 	 */
 	if (parent_check(&pr) == PARENT_SUCCESS) {
-		allocate_entry_logical(pointer_logical, pr);
+	   allocate_entry_logical(&pointer_logical, (LOGICAL_MEMORY *)free_frames, &pr);
 	}
 
 	/*
