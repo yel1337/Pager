@@ -62,15 +62,13 @@ static int parent_check(pid_t *pr)
 	return 0;
 }
 
-static size_t return_size(LOGICAL_MEMORY *array_instance){
-	size_t array_size;
+static size_t return_size(LOGICAL_MEMORY *MEMORY){
 	/*
 	 * Below gets the absolute size of an index
+	 *
+	 * Allow main to point it to the struct
 	 */
-	array_size = sizeof(array_instance->logical_space[PTE_SIZE]) /
-							sizeof(array_instance->logical_space[0]);
-
-	return array_size;
+	return (sizeof(MEMORY) / sizeof(MEMORY[0]));
 }
 
 static LOGICAL_MEMORY **which_free_frame()
@@ -90,7 +88,7 @@ static LOGICAL_MEMORY **which_free_frame()
 static void allocate_frame(pid_t *process_addr, LOGICAL_MEMORY **FRAME_FREE)
 {
         size_t FRAME_SIZE = sizeof(FRAME_FREE);
-	// Allocate a frame inside of multi dimensional array of logical memory
+		// Allocate a frame inside of multi dimensional array of logical memory
         for (int frame_index = 0; frame_index < FRAME_SIZE; frame_index++) {
 			FRAME_FREE[frame_index] = (LOGICAL_MEMORY *)process_addr; 
 	}	
@@ -100,25 +98,41 @@ static void allocate_mem_logical(LOGICAL_MEMORY *logical_instance) {
 	logical_instance->logical_space = malloc(ADDRESS_SPACE * sizeof(LOGICAL_MEMORY *));
 }
 
-static LOGICAL_MEMORY *DEBUG_ADDR_LOGICAL(LOGICAL_MEMORY *lm)
+static LOGICAL_MEMORY *DEBUG_ADDR_LOGICAL()
 {
+        /*
+	 * ONLY RETURNS THE POINTER ADDRESS OF THE ADDRESS SPACE
+	 */
+        LOGICAL_MEMORY *lm; 
 	return lm->logical_space;
-} 
+}
+
+static uint32_t *return_frame_addr()
+{
+	/*
+	 * Useful for having it check
+	 */
+	LOGICAL_MEMORY *instance_logical;
+	if (instance_logical->pte_frame == NULL) {
+	   return NULL;
+	}
+	return (uint32_t *)instance_logical->pte_frame;
+}
 
 int main(int argc, char *argv[])
 {
-    LOGICAL_MEMORY l, *lg;
+        LOGICAL_MEMORY l, *lg;
 
 	/*
 	 * ALLOCATE FOR LOGICAL MEMORY
 	 */
-	allocate_mem_logical(lg);
+	allocate_mem_logical(lg); // Allocate a space for logical_space struct
 	LOGICAL_MEMORY **space = &lg->logical_space;
 
 	/*
 	 * ALLOCATE A MEMORY FOR EACH FRAME
 	 */
-    lg->pte_frame = malloc(PAGE_NUMBER * sizeof(LOGICAL_MEMORY *));
+        lg->pte_frame = malloc(PAGE_NUMBER * sizeof(LOGICAL_MEMORY *));
 	LOGICAL_MEMORY **free_frames = which_free_frame();
 
 	/*
@@ -129,7 +143,7 @@ int main(int argc, char *argv[])
 	/*
 	 * ALLOCATION FOR LOGICAL MEMORY STARTS HERE
 	 */
-    allocate_frame(&pr, free_frames);
+        allocate_frame(&pr, free_frames);
 
 	/*
 	 * PUT FRAME TO SPACE
@@ -138,6 +152,12 @@ int main(int argc, char *argv[])
 
 	/*
 	 * PAGE NUMBER & OFFSET
+	 *
+	 * Wherein space is a pointer to pointer to the address space
+	 *                       |
+	 *                       v 
+	 * LOGICAL_MEMORY **space = &lg->logical_space;
+	 * where the logical space is located
 	 */
 	uint32_t PN = PAGE_NUMBER;	
 	uint32_t OFT = OFFSET((uint32_t)(uintptr_t)space, PAGE_SIZE);
